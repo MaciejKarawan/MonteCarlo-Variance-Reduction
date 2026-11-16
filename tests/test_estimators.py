@@ -1,7 +1,7 @@
 import importlib, contextlib, io, unittest
 import numpy as np
 from variance_reduction.pricing import BS, CMC_euro, CMC_asia
-class MigrationChecks(unittest.TestCase):
+class ProjectTests(unittest.TestCase):
     def test_computational_imports_are_quiet(self):
         output=io.StringIO()
         with contextlib.redirect_stdout(output):
