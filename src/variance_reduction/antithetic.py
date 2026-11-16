@@ -26,7 +26,8 @@ def antithetic_estimation(R,S_0,sigma,r,K):
     VarI=(VarY*(1+CorrX1X2))
     return [math.exp(-r) * EY,VarI,VarY]
 
-print(antithetic_estimation(1000,100,0.25,0.05,100))
+if __name__ == "__main__":
+    print(antithetic_estimation(1000,100,0.25,0.05,100))
 
 
 

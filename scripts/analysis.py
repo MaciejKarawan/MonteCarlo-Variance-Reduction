@@ -1,34 +1,13 @@
 import numpy as np
+
 import matplotlib.pyplot as plt
 
-from test import *
-
-
-R = 1000
-cmc_euro = CMC_euro(R)
-cmc_asia2 = CMC_asia(R, 2)
-cmc_asia10 = CMC_asia(R, 10)
-black_scholes = BS()
-
-print(f'Budżet {R}')
-
-print('CRUDE MONTE CARLO \n'
-      f'Euro: {cmc_euro[0]} \n'
-      f'Asia2: {cmc_asia2[0]} \n'
-      f'Asia10: {cmc_asia10[0]}')
-
-print(f'Black-Scholes formula (n=1): {black_scholes} \n'
-      f'Błąd bezwzględny: {np.abs(cmc_euro[0] - black_scholes)} \n'
-      f'Błąd względny: {np.abs(cmc_euro[0] - black_scholes)/black_scholes}')
-
+from variance_reduction.pricing import BS, CMC_asia, CMC_euro, np, optimal_allocation, strat_euro
 
 '''
             Porównanie wariancji (przedziałów ufności) dla CRUDE MONTE CARLO w zalezności od R
             + extra można w zależności od n dla azjatyckich (?)
 '''
-
-
-#EURO
 
 '''
 R = np.array([i for i in range(100, 8001, 50)])
@@ -58,7 +37,6 @@ plt.tight_layout()
 plt.show()
 '''
 
-# ASIA
 '''
 R = np.array([i for i in range(100, 3001, 100)])
 
@@ -89,12 +67,9 @@ plt.tight_layout()
 plt.show()
 '''
 
-
-
 '''
             Przedziały ufności, CMC Euro i Black Scholes
 '''
-
 
 '''
 n = 100
@@ -123,7 +98,6 @@ ax.text(0.83, 0.10, f'Procent wartości w przedziale: {round(percent_in_interval
 plt.tight_layout()
 plt.show()
 '''
-
 
 '''
             Estymatory warstwowe, optimal i proportional allocation
@@ -159,10 +133,6 @@ plt.tight_layout()
 plt.show()
 '''
 
-# EURO, alokacja optymalna
-
-# Wspomnieć o zerowych Rj (!)
-
 '''
 R = 8000
 Rpilot = 1000
@@ -192,39 +162,67 @@ plt.show()
 '''
 
 
-# EURO, alokacja proporcjonalna a optymalna a CMC
+def main():
+    global R, Rpilot, allocations, ax, black_scholes, cmc, cmc_asia10, cmc_asia2, cmc_euro, fig, i, j, optimals, osample, ovar, psample, pvar, stratas
+    R = 1000
 
-Rpilot = 1000
-R = [100, 500, 1000]
-stratas = np.array([np.linspace(i/10, i/4, 10).astype(int) for i in R])
-optimals = [[optimal_allocation(Rpilot, R[i], stratas[i][j], 1) for j in range(len(stratas[0]))] for i in range(len(R))]
+    cmc_euro = CMC_euro(R)
+
+    cmc_asia2 = CMC_asia(R, 2)
+
+    cmc_asia10 = CMC_asia(R, 10)
+
+    black_scholes = BS()
+
+    print(f'Budżet {R}')
+
+    print('CRUDE MONTE CARLO \n'
+          f'Euro: {cmc_euro[0]} \n'
+          f'Asia2: {cmc_asia2[0]} \n'
+          f'Asia10: {cmc_asia10[0]}')
+
+    print(f'Black-Scholes formula (n=1): {black_scholes} \n'
+          f'Błąd bezwzględny: {np.abs(cmc_euro[0] - black_scholes)} \n'
+          f'Błąd względny: {np.abs(cmc_euro[0] - black_scholes)/black_scholes}')
+
+    Rpilot = 1000
+
+    R = [100, 500, 1000]
+
+    stratas = np.array([np.linspace(i/10, i/4, 10).astype(int) for i in R])
+
+    optimals = [[optimal_allocation(Rpilot, R[i], stratas[i][j], 1) for j in range(len(stratas[0]))] for i in range(len(R))]
+
+    fig, ax = plt.subplots(3, 1, figsize=(10,6))
+
+    fig.suptitle('Porównanie wariancji dla różnych metod alokacji')
+
+    for i in range(len(R)):
+          allocations = optimals[i]
+          osample = [strat_euro(R[i], stratas[i][j], allocations[j]) for j in range(len(stratas[i]))]
+          psample = [strat_euro(R[i], stratas[i][j]) for j in range(len(stratas[i]))]
+          ovar = np.array([osample[j][1] for j in range(len(osample))])
+          pvar = np.array([psample[j][1] for j in range(len(psample))])
+          cmc = CMC_euro(R[i])[1]
+
+          ax[i].plot(stratas[i], ovar, color='lime', marker = '.')
+          ax[i].plot(stratas[i], pvar, color='deepskyblue', marker = '.')
+          ax[i].hlines(cmc, stratas[i][0], stratas[i][-1], color='orangered', linestyles='--')
+          ax[i].set_title(f'Dla R = {R[i]}', fontsize=10)
+
+          ax[i].grid(axis='x', color='midnightblue', alpha=0.1, in_layout=True)
+          ax[i].grid(axis='y', color='midnightblue', alpha=0.1, in_layout=True)
+
+    ax[2].set_xlabel('Liczba warstw')
+
+    ax[1].set_ylabel('Wartość błędu')
+
+    ax[0].legend(['Alokacja optymalna', 'Alokacja proporcjonalna', 'CMC'])
+
+    plt.tight_layout()
+
+    plt.show()
 
 
-fig, ax = plt.subplots(3, 1, figsize=(10,6))
-fig.suptitle('Porównanie wariancji dla różnych metod alokacji')
-
-for i in range(len(R)):
-      allocations = optimals[i]
-      osample = [strat_euro(R[i], stratas[i][j], allocations[j]) for j in range(len(stratas[i]))]
-      psample = [strat_euro(R[i], stratas[i][j]) for j in range(len(stratas[i]))]
-      ovar = np.array([osample[j][1] for j in range(len(osample))])
-      pvar = np.array([psample[j][1] for j in range(len(psample))])
-      cmc = CMC_euro(R[i])[1]
-
-      ax[i].plot(stratas[i], ovar, color='lime', marker = '.')
-      ax[i].plot(stratas[i], pvar, color='deepskyblue', marker = '.')
-      ax[i].hlines(cmc, stratas[i][0], stratas[i][-1], color='orangered', linestyles='--')
-      ax[i].set_title(f'Dla R = {R[i]}', fontsize=10)
-
-      ax[i].grid(axis='x', color='midnightblue', alpha=0.1, in_layout=True)
-      ax[i].grid(axis='y', color='midnightblue', alpha=0.1, in_layout=True)
-
-
-ax[2].set_xlabel('Liczba warstw')
-ax[1].set_ylabel('Wartość błędu')
-ax[0].legend(['Alokacja optymalna', 'Alokacja proporcjonalna', 'CMC'])
-
-plt.tight_layout()
-plt.show()
-
-# Porównanie warstwowych z CMC
+if __name__ == "__main__":
+    main()

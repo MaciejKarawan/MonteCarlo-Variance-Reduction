@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 from math import log, e
-from STRATA import strata
+from variance_reduction.stratification import strata
 from random import seed
 
 r = 0.05

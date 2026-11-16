@@ -1,12 +1,19 @@
 import matplotlib.pyplot as plt
-from test import *
+
+from variance_reduction.pricing import BS, Brown, CMC_euro, GBM, k, mi, np, optimal_allocation, r, s0, sigma, strat_euro
+
 import numpy as np
+
 from statistics import variance, covariance, correlation
+
 from math import exp
+
 import pandas as pd
+
 import seaborn
+
 from scipy.stats import binom
-np.random.seed(666)
+
 def control_variate(R):
     Xi = np.random.normal(0,1,R)
     GBMs = np.array([GBM(Brown(1)) for _ in range(R)])
@@ -21,8 +28,6 @@ def control_variate(R):
     VarY=np.var(Yi,ddof=1)
     VarY_CV=(VarY+2*b*covariance(Yi,Xi))/R
     return  Y_CV, VarY_CV
-
-
 
 def antithetic(R):
     n=int(R/2)
@@ -40,27 +45,6 @@ def antithetic(R):
     VarY=(np.var(X1,ddof=1))/n
     VarY_ant=(VarY*(1+CorrX1X2))
     return Y_ant, VarY_ant
-R_vec=[100,1000,10000,100000]
-ANT=[antithetic(R) for R in R_vec]
-CV=[control_variate(R) for R in R_vec]
-CMC=[CMC_euro(R) for R in R_vec]
-m=10
-STRATA_P=[strat_euro(R,m=int(min(m,R*0.1))) for R in R_vec]
-STRATA_O=[strat_euro(R,m=int(min(m,R*0.1)),allocation=optimal_allocation(int(R*0.5),R,m=int(min(m,R*0.1)),n=1)) for R in R_vec]
-R_index=[(R_vec[i],R_vec[i]) for i in range(len(R_vec))]
-#+["stratified proportional"]
-
-method_labels=np.repeat(["antithetic"]+["control variate"]+["CMC"]+["stratified proportional["+str(m)+"]"]+["stratified optimal ["+str(m)+"]"],len(R_vec),axis=0)
-df = pd.DataFrame(np.array(ANT+CV+CMC+STRATA_P+STRATA_O), columns=(["MEAN"]+["VARIANCE"]))
-df.insert(2, "method",method_labels, True)
-df.insert(2, "R",R_vec*len(np.unique(method_labels)), True)
-df.insert(2, "confidence interval length",1.96*np.sqrt(df.VARIANCE)/np.sqrt(df.R), True)
-table=df.query('R==10000')
-VAR_CMC=table.query('method=="CMC"').VARIANCE
-
-print(table.to_latex())
-print(table)
-seaborn.set(style='darkgrid')
 
 def seaborn_plots(df,val):
     fig, ax = plt.subplots()
@@ -73,6 +57,7 @@ def seaborn_plots(df,val):
             verticalalignment='top',bbox=dict( facecolor='white', alpha=0.5))
     plt.tight_layout()
     plt.show()
+
 """
 seaborn_plots(df.query('R==10000'),'MEAN')
 
@@ -107,8 +92,6 @@ for label, df in df.groupby('method'):
 plt.legend()
 plt.show()
 """
-
-
 
 def confidence_intervals_plot(method,R,n,caption):
 
@@ -148,6 +131,47 @@ confidence_intervals_plot(strat_euro,10000,100,'warstwowa[10] z proporcjonalną 
 confidence_intervals_plot(CMC_euro,10000,100,'Crude Monte Carlo')
 """
 
-#confidence_intervals_plot(strat_euro,10000,100,'warstwowa[10] z optymalną alokacją')
+
+def main():
+    global ANT, CMC, CV, R, R_index, R_vec, STRATA_O, STRATA_P, VAR_CMC, df, i, m, method_labels, table
+    np.random.seed(666)
+
+    R_vec=[100,1000,10000,100000]
+
+    ANT=[antithetic(R) for R in R_vec]
+
+    CV=[control_variate(R) for R in R_vec]
+
+    CMC=[CMC_euro(R) for R in R_vec]
+
+    m=10
+
+    STRATA_P=[strat_euro(R,m=int(min(m,R*0.1))) for R in R_vec]
+
+    STRATA_O=[strat_euro(R,m=int(min(m,R*0.1)),allocation=optimal_allocation(int(R*0.5),R,m=int(min(m,R*0.1)),n=1)) for R in R_vec]
+
+    R_index=[(R_vec[i],R_vec[i]) for i in range(len(R_vec))]
+
+    method_labels=np.repeat(["antithetic"]+["control variate"]+["CMC"]+["stratified proportional["+str(m)+"]"]+["stratified optimal ["+str(m)+"]"],len(R_vec),axis=0)
+
+    df = pd.DataFrame(np.array(ANT+CV+CMC+STRATA_P+STRATA_O), columns=(["MEAN"]+["VARIANCE"]))
+
+    df.insert(2, "method",method_labels, True)
+
+    df.insert(2, "R",R_vec*len(np.unique(method_labels)), True)
+
+    df.insert(2, "confidence interval length",1.96*np.sqrt(df.VARIANCE)/np.sqrt(df.R), True)
+
+    table=df.query('R==10000')
+
+    VAR_CMC=table.query('method=="CMC"').VARIANCE
+
+    print(table.to_latex())
+
+    print(table)
+
+    seaborn.set(style='darkgrid')
 
 
+if __name__ == "__main__":
+    main()
